@@ -3,53 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MapGIS Bello - Profesional</title>
+    <title>MapGIS Bello - Herramientas Pro</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Buscador CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
     
     <style>
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         #map { height: 100vh; width: 100%; }
         .floating-panel { 
             position: absolute; top: 15px; left: 60px; 
             z-index: 1000; background: rgba(255, 255, 255, 0.9); 
-            padding: 15px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            max-width: 250px;
+            padding: 12px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            width: 200px;
         }
-        h2 { margin: 0 0 10px 0; font-size: 18px; color: #333; }
     </style>
 </head>
 <body>
 
     <div class="floating-panel">
-        <h2>MapGIS Bello</h2>
-        <p style="font-size: 12px;">Vista Satelital de Alta Resolución</p>
-        <hr>
-        <small>Próximamente: Capa de Predios y Normativa POT</small>
+        <h3 style="margin:0; font-size: 16px;">MapGIS Bello</h3>
+        <p style="font-size: 11px; margin: 5px 0;">Herramientas de búsqueda y medición activas.</p>
     </div>
 
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Buscador JS -->
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
     <script>
-        // Inicializar mapa en Bello
-        var map = L.map('map').setView([6.3373, -75.5579], 17); // Zoom más cercano (17)
+        var map = L.map('map').setView([6.3373, -75.5579], 17);
 
-        // CAPA REALISTA: Esri World Imagery (Gratuita)
-        var esriSatelite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community'
+        // Satélite Esri
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Esri World Imagery'
         }).addTo(map);
 
-        // CAPA DE CALLES (Híbrida): Para ver nombres sobre el satélite
-        var labels = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
-            pane: 'shadowPane' // Para que los nombres queden arriba
+        // Nombres de calles (Labels)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+            pane: 'shadowPane'
         }).addTo(map);
 
-        // Marcador en el Parque Principal
-        L.marker([6.3373, -75.5579]).addTo(map)
-            .bindPopup('<b>Centro de Bello</b><br>Listo para cargar planos PDF.')
-            .openPopup();
+        // 1. AÑADIR BARRA DE ESCALA
+        L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
+
+        // 2. AÑADIR BUSCADOR DE DIRECCIONES
+        L.Control.geocoder({
+            defaultMarkGeocode: true,
+            placeholder: "Buscar en Bello...",
+            errorMessage: "No se encontró la dirección."
+        }).addTo(map);
+
+        // 3. COORDENADAS AL CLIC (Para que sepas dónde estás)
+        map.on('click', function(e) {
+            L.popup()
+                .setLatLng(e.latlng)
+                .setContent("Coordenadas:<br>" + e.latlng.lat.toFixed(6) + ", " + e.latlng.lng.toFixed(6))
+                .openOn(map);
+        });
     </script>
 </body>
 </html>
