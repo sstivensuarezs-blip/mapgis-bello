@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MapGIS Bello - Herramientas Pro</title>
+    <title>MapGIS Bello - Buscador Avanzado</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Buscador CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
     
     <style>
@@ -15,8 +14,7 @@
         .floating-panel { 
             position: absolute; top: 15px; left: 60px; 
             z-index: 1000; background: rgba(255, 255, 255, 0.9); 
-            padding: 12px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            width: 200px;
+            padding: 10px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
     </style>
 </head>
@@ -24,43 +22,77 @@
 
     <div class="floating-panel">
         <h3 style="margin:0; font-size: 16px;">MapGIS Bello</h3>
-        <p style="font-size: 11px; margin: 5px 0;">Herramientas de búsqueda y medición activas.</p>
+        <p style="font-size: 11px; margin: 0;">Buscador optimizado (CL, CR, TV, DG)</p>
     </div>
 
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Buscador JS -->
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
     <script>
-        var map = L.map('map').setView([6.3373, -75.5579], 17);
+        // Inicializar mapa centrado en Bello
+        var map = L.map('map').setView([6.3373, -75.5579], 16);
 
-        // Satélite Esri
+        // Capas base
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Esri World Imagery'
+            attribution: 'Esri Satellite'
         }).addTo(map);
 
-        // Nombres de calles (Labels)
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
             pane: 'shadowPane'
         }).addTo(map);
 
-        // 1. AÑADIR BARRA DE ESCALA
-        L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
+        L.control.scale({ imperial: false }).addTo(map);
 
-        // 2. AÑADIR BUSCADOR DE DIRECCIONES
-        L.Control.geocoder({
-            defaultMarkGeocode: true,
-            placeholder: "Buscar en Bello...",
-            errorMessage: "No se encontró la dirección."
+        // --- LÓGICA DEL BUSCADOR OPTIMIZADO ---
+
+        var geocoder = L.Control.Geocoder.nominatim();
+
+        var control = L.Control.geocoder({
+            geocoder: geocoder,
+            placeholder: "Ej: CL 50 # 50-50",
+            errorMessage: "No se encontró en Bello.",
+            defaultMarkGeocode: false
+        }).on('markgeocode', function(e) {
+            var bbox = e.geocode.bbox;
+            var poly = L.polygon([
+                bbox.getSouthEast(),
+                bbox.getNorthEast(),
+                bbox.getNorthWest(),
+                bbox.getSouthWest()
+            ]);
+            map.fitBounds(poly.getBounds());
+            
+            L.marker(e.geocode.center).addTo(map)
+                .bindPopup(e.geocode.name)
+                .openPopup();
         }).addTo(map);
 
-        // 3. COORDENADAS AL CLIC (Para que sepas dónde estás)
+        // Modificar la función de búsqueda para aceptar abreviaturas y forzar a Bello
+        var originalMarkGeocode = control.markGeocode;
+
+        geocoder.geocode = function(query, cb) {
+            // 1. Traducir abreviaturas
+            let cleanQuery = query.toUpperCase()
+                .replace(/\bCL\b/g, "Calle")
+                .replace(/\bCR\b/g, "Carrera")
+                .replace(/\bTV\b/g, "Transversal")
+                .replace(/\bDG\b/g, "Diagonal")
+                .replace(/\bCQ\b/g, "Circular");
+
+            // 2. Forzar que busque solo en Bello, Antioquia
+            cleanQuery += ", Bello, Antioquia, Colombia";
+
+            // Llamar al buscador original con la consulta limpia
+            L.Control.Geocoder.nominatim().geocode(cleanQuery, cb);
+        };
+
+        // Mostrar coordenadas al clic
         map.on('click', function(e) {
             L.popup()
                 .setLatLng(e.latlng)
-                .setContent("Coordenadas:<br>" + e.latlng.lat.toFixed(6) + ", " + e.latlng.lng.toFixed(6))
+                .setContent("Punto en Bello:<br>" + e.latlng.lat.toFixed(6) + ", " + e.latlng.lng.toFixed(6))
                 .openOn(map);
         });
     </script>
